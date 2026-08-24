@@ -4,7 +4,7 @@
 // ==/UserScript==
 /* ==== Tab groups ==== */
 /* https://github.com/Anoms12/Advanced-Tab-Groups */
-/* ======= v3.5.3 ======= */
+/* ======= v3.5.4 ======= */
 
 class AdvancedTabGroups {
   #initTabGroupListener;
@@ -89,6 +89,7 @@ class AdvancedTabGroups {
             );
             flex-shrink: 0;
             width: 100%;
+            margin-block: 4px 2px;
           }
 
           .library-workspace-tab-group.collapsed > .library-workspace-tab-group-content {
@@ -126,7 +127,7 @@ class AdvancedTabGroups {
             background-image: url(chrome://browser/content/zen-images/grain-bg.png);
             opacity: var(--group-grain, 0);
             mix-blend-mode: overlay;
-            z-index: 1;
+            z-index: 2;
           }
 
           .library-workspace-tab-group.collapsed .library-workspace-tab-group-content .library-workspace-item:not(.selected) {
@@ -141,9 +142,10 @@ class AdvancedTabGroups {
             min-height: 36px;
             height: 36px;
             margin: 0 !important;
-            padding: 0 10px 0 0 !important;
+            padding-left: var(--tab-inline-padding) !important;
+            padding-right: 0 !important;
             border-radius: var(--border-radius-medium, 6px) !important;
-            gap: 0;
+            gap: 8px;
             background: transparent;
           }
 
@@ -163,7 +165,7 @@ class AdvancedTabGroups {
             height: 100%;
             display: flex;
             align-items: center;
-            padding: 0 4px !important;
+            padding: 0 !important;
             mask-image: linear-gradient(to left, transparent, black 1em);
           }
 
@@ -174,7 +176,6 @@ class AdvancedTabGroups {
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            margin-inline-start: 4px;
             opacity: 0.75;
           }
 
@@ -186,7 +187,7 @@ class AdvancedTabGroups {
             justify-content: center;
             border-radius: 4px !important;
             position: relative;
-            margin: 0 6px 0 10px;
+            margin: 0;
             fill: var(--atg-tab-group-stroke) !important;
             background: var(--atg-tab-group-color);
             overflow: hidden;
@@ -218,11 +219,17 @@ class AdvancedTabGroups {
             opacity: 0.9;
           }
 
-          @media (-moz-pref("browser.tabs.groups.arc-style")) {
+          @media (-moz-pref("browser.tabs.groups.arc-style")), (-moz-pref("tab.groups.fill-folders")), (-moz-pref("tab.groups.theme-folders")) {
+            .library-workspace-tab-group {
+              margin-block: 4px 2px;
+            }
+
             .library-workspace-item.atg-tab-group {
               min-height: 30px;
               height: 30px;
               margin-block-start: 5px !important;
+              padding-left: var(--tab-inline-padding) !important;
+              padding-right: 0 !important;
             }
 
             .library-workspace-item.atg-tab-group:hover {
@@ -232,7 +239,7 @@ class AdvancedTabGroups {
             .atg-tab-group-icon {
               display: none;
               background: none !important;
-              margin: 0 0 0 10px !important;
+              margin: 0 !important;
             }
 
             .atg-tab-group-icon.has-custom-icon,
@@ -249,7 +256,7 @@ class AdvancedTabGroups {
             .library-workspace-item.atg-tab-group .item-label {
               font-weight: 600 !important;
               padding-inline: 0 var(--space-medium, 8px) !important;
-              margin-left: 10px !important;
+              margin-left: 0 !important;
             }
 
             .library-workspace-tab-group-content {
