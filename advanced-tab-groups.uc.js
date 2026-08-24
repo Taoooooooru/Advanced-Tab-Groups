@@ -4,7 +4,7 @@
 // ==/UserScript==
 /* ==== Tab groups ==== */
 /* https://github.com/Anoms12/Advanced-Tab-Groups */
-/* ====== v3.4.0s ====== */
+/* ======= v3.5.2 ======= */
 
 class AdvancedTabGroups {
   #initTabGroupListener;
@@ -494,6 +494,10 @@ class AdvancedTabGroups {
           <menuitem class="rename-group" label="Rename"/>
           <menuitem class="change-group-icon" label="Change Icon"/>
           <menuseparator/>
+          <menu class="move-group-to-space" label="Move to Space">
+            <menupopup class="move-group-to-space-popup"/>
+          </menu>
+          <menuseparator/>
           <menuitem class="ungroup-tabs" label="Ungroup"/>
           <menuitem class="convert-group-to-folder" 
                     label="Convert to Folder"/>
@@ -510,6 +514,12 @@ class AdvancedTabGroups {
       const useFaviconColorItem = contextMenu.querySelector(".use-favicon-color");
       const renameGroupItem = contextMenu.querySelector(".rename-group");
       const changeGroupIconItem = contextMenu.querySelector(".change-group-icon");
+      const moveGroupToSpaceItem = contextMenu.querySelector(
+        ".move-group-to-space"
+      );
+      const moveGroupToSpacePopup = contextMenu.querySelector(
+        ".move-group-to-space-popup"
+      );
       const ungroupTabsItem = contextMenu.querySelector(".ungroup-tabs");
       const convertToFolderItem = contextMenu.querySelector(
         ".convert-group-to-folder"
@@ -537,6 +547,20 @@ class AdvancedTabGroups {
         }
       }
 
+      moveGroupToSpacePopup?.addEventListener("popupshowing", () => {
+        this.populateMoveGroupToSpaceMenu(moveGroupToSpacePopup);
+      });
+      contextMenu.addEventListener("popupshowing", () => {
+        const workspaces = this.getWorkspaces();
+        const currentWorkspaceId = this.getGroupWorkspaceId(
+          this._contextMenuCurrentGroup
+        );
+        moveGroupToSpaceItem.hidden = workspaces.length <= 1;
+        moveGroupToSpaceItem.disabled =
+          !currentWorkspaceId ||
+          workspaces.every(workspace => workspace.uuid === currentWorkspaceId);
+      });
+
       // Clear the current group when the menu closes (ready to be reused)
       contextMenu.addEventListener("popuphidden", () => {
         console.log("[AdvancedTabGroups] Context menu hidden");
@@ -549,6 +573,107 @@ class AdvancedTabGroups {
     } catch (error) {
       console.error("[AdvancedTabGroups] Error creating shared context menu:", error);
       return null;
+    }
+  }
+
+  getWorkspaces(includeSynced = false) {
+    const workspaces = window.gZenWorkspaces?.getWorkspaces?.(includeSynced);
+    if (Array.isArray(workspaces)) {
+      return workspaces;
+    }
+    if (Array.isArray(workspaces?.workspaces)) {
+      return workspaces.workspaces;
+    }
+    return [];
+  }
+
+  getGroupTabs(group) {
+    return Array.from(group?.tabs || []).filter(
+      tab =>
+        gBrowser.isTab(tab) &&
+        !tab.hasAttribute("zen-empty-tab") &&
+        !tab.hasAttribute("zen-essential")
+    );
+  }
+
+  getGroupWorkspaceId(group) {
+    return (
+      group?.getAttribute?.("zen-workspace-id") ||
+      this.getGroupTabs(group)[0]?.getAttribute("zen-workspace-id") ||
+      window.gZenWorkspaces?.activeWorkspace ||
+      null
+    );
+  }
+
+  populateMoveGroupToSpaceMenu(popup) {
+    while (popup.firstChild) {
+      popup.firstChild.remove();
+    }
+
+    const group = this._contextMenuCurrentGroup;
+    const currentWorkspaceId = this.getGroupWorkspaceId(group);
+    const workspaces = this.getWorkspaces();
+
+    for (const workspace of workspaces) {
+      if (!workspace?.uuid) {
+        continue;
+      }
+
+      const item = document.createXULElement("menuitem");
+      item.setAttribute("label", workspace.name || "Unnamed Space");
+      item.setAttribute("zen-workspace-id", workspace.uuid);
+      item.toggleAttribute("disabled", workspace.uuid === currentWorkspaceId);
+      item.addEventListener("command", () => {
+        this.moveGroupToWorkspace(group, workspace.uuid);
+      });
+      popup.appendChild(item);
+    }
+  }
+
+  moveGroupToWorkspace(group, workspaceId) {
+    try {
+      if (!group || !workspaceId || !window.gZenWorkspaces) {
+        return;
+      }
+
+      const tabs = this.getGroupTabs(group);
+      if (!tabs.length) {
+        return;
+      }
+
+      const targetWorkspace = window.gZenWorkspaces.getWorkspaceFromId?.(
+        workspaceId
+      );
+      const targetElement = window.gZenWorkspaces.workspaceElement?.(
+        workspaceId
+      );
+      const targetContainer =
+        targetElement?.tabsContainer ||
+        targetElement?.querySelector?.(".zen-workspace-normal-tabs-section");
+
+      for (const tab of tabs) {
+        window.gZenWorkspaces.moveTabToWorkspace?.(tab, workspaceId);
+        tab.setAttribute("zen-workspace-id", workspaceId);
+      }
+
+      group.setAttribute("zen-workspace-id", workspaceId);
+      if (targetContainer && group.isConnected) {
+        const periphery = targetContainer.querySelector(
+          "#tabbrowser-arrowscrollbox-periphery"
+        );
+        targetContainer.insertBefore(group, periphery || null);
+      }
+
+      if (targetWorkspace && tabs.some(tab => tab.selected)) {
+        window.gZenWorkspaces.lastSelectedWorkspaceTabs[workspaceId] =
+          tabs.find(tab => tab.selected) || tabs[0];
+        window.gZenWorkspaces.changeWorkspace(targetWorkspace);
+      }
+
+      this.updateGroupVisibility();
+      setTimeout(() => this.updateGroupVisibility(), 100);
+    } catch (error) {
+      console.error("[AdvancedTabGroups] Error moving group to space:", error);
     }
   }
 
