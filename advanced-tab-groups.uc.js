@@ -4,7 +4,7 @@
 // ==/UserScript==
 /* ==== Tab groups ==== */
 /* https://github.com/Anoms12/Advanced-Tab-Groups */
-/* ======= v3.5.2 ======= */
+/* ======= v3.5.3 ======= */
 
 class AdvancedTabGroups {
   #initTabGroupListener;
@@ -27,6 +27,9 @@ class AdvancedTabGroups {
 
     // Add folder context menu item
     this.addFolderContextMenuItems();
+
+    // Make Zen Library render ATG tab groups differently from folders.
+    this.setupZenLibraryIntegration();
 
     // Remove built-in tab group editor menus if they exist
     this.removeBuiltinTabGroupMenu();
@@ -51,6 +54,397 @@ class AdvancedTabGroups {
 
     // Initial update of group visibility
     setTimeout(() => this.updateGroupVisibility(), 500);
+  }
+
+  setupZenLibraryIntegration() {
+    const patchZenLibrary = () => {
+      const Spaces = window.ZenLibrarySpaces;
+      const proto = Spaces?.prototype;
+      if (!proto || proto._advancedTabGroupsPatched) {
+        return Boolean(proto?._advancedTabGroupsPatched);
+      }
+
+      const originalRenderItemRecursive = proto.renderItemRecursive;
+      if (typeof originalRenderItemRecursive !== "function") {
+        return false;
+      }
+
+      proto._advancedTabGroupsPatched = true;
+      proto._advancedTabGroupsRenderItemRecursive = originalRenderItemRecursive;
+
+      proto.ensureAdvancedTabGroupsStyles = function () {
+        const root = this.library?.shadowRoot;
+        if (!root || root.getElementById("advanced-tab-groups-zen-library-styles")) {
+          return;
+        }
+
+        const style = document.createElement("style");
+        style.id = "advanced-tab-groups-zen-library-styles";
+        style.textContent = `
+          .library-workspace-tab-group {
+            --atg-tab-group-color: var(--ws-primary-color);
+            --atg-tab-group-stroke: light-dark(
+              color-mix(in srgb, var(--zen-primary-color) 60%, black),
+              color-mix(in srgb, var(--zen-colors-primary) 20%, var(--toolbox-textcolor))
+            );
+            flex-shrink: 0;
+            width: 100%;
+          }
+
+          .library-workspace-tab-group.collapsed > .library-workspace-tab-group-content {
+            max-height: 0;
+            overflow: hidden;
+          }
+
+          .library-workspace-tab-group-content {
+            margin-inline-start: 12px;
+            max-height: 4000px;
+            overflow: hidden;
+            position: relative;
+            transition: max-height 0.15s var(--zen-library-easing);
+          }
+
+          .library-workspace-tab-group-content::after {
+            content: "";
+            position: absolute;
+            left: -2px;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            pointer-events: none;
+            background: var(--atg-tab-group-color);
+          }
+
+          .library-workspace-tab-group[show-grain="true"] .library-workspace-tab-group-content::before {
+            content: "";
+            position: absolute;
+            left: -2px;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            pointer-events: none;
+            background-image: url(chrome://browser/content/zen-images/grain-bg.png);
+            opacity: var(--group-grain, 0);
+            mix-blend-mode: overlay;
+            z-index: 1;
+          }
+
+          .library-workspace-tab-group.collapsed .library-workspace-tab-group-content .library-workspace-item:not(.selected) {
+            max-height: 0 !important;
+            min-height: 0 !important;
+            opacity: 0 !important;
+            margin-block: 0 !important;
+            pointer-events: none;
+          }
+
+          .library-workspace-item.atg-tab-group {
+            min-height: 36px;
+            height: 36px;
+            margin: 0 !important;
+            padding: 0 10px 0 0 !important;
+            border-radius: var(--border-radius-medium, 6px) !important;
+            gap: 0;
+            background: transparent;
+          }
+
+          .library-workspace-item.atg-tab-group:hover {
+            background-color: var(--tab-hover-background-color, var(--ws-tab-hover-color)) !important;
+          }
+
+          .library-workspace-item.atg-tab-group.selected {
+            background: transparent;
+            box-shadow: none;
+          }
+
+          .library-workspace-item.atg-tab-group .item-label {
+            color: var(--tab-selected-textcolor, var(--ws-text-color)) !important;
+            direction: ltr;
+            font-weight: 400 !important;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 4px !important;
+            mask-image: linear-gradient(to left, transparent, black 1em);
+          }
+
+          .atg-tab-group-chevron {
+            width: 10px;
+            height: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-inline-start: 4px;
+            opacity: 0.75;
+          }
+
+          .atg-tab-group-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px !important;
+            position: relative;
+            margin: 0 6px 0 10px;
+            fill: var(--atg-tab-group-stroke) !important;
+            background: var(--atg-tab-group-color);
+            overflow: hidden;
+          }
+
+          .atg-tab-group-icon.has-custom-icon {
+            color: var(--atg-tab-group-stroke);
+          }
+
+          .atg-tab-group-icon .group-icon {
+            display: block;
+            width: 12px;
+            height: 12px;
+            fill: white;
+            -moz-context-properties: fill, fill-opacity;
+          }
+
+          .atg-tab-group-icon label {
+            transform: translate(0, -1px);
+            font-size: 11px;
+            line-height: 16px;
+          }
+
+          .atg-tab-group-icon-fallback {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            background: var(--atg-tab-group-stroke);
+            opacity: 0.9;
+          }
+
+          @media (-moz-pref("browser.tabs.groups.arc-style")) {
+            .library-workspace-item.atg-tab-group {
+              min-height: 30px;
+              height: 30px;
+              margin-block-start: 5px !important;
+            }
+
+            .library-workspace-item.atg-tab-group:hover {
+              background-color: transparent !important;
+            }
+
+            .atg-tab-group-icon {
+              display: none;
+              background: none !important;
+              margin: 0 0 0 10px !important;
+            }
+
+            .atg-tab-group-icon.has-custom-icon,
+            .atg-tab-group-icon[zen-emoji-open="true"] {
+              display: flex;
+            }
+
+            .atg-tab-group-icon .group-icon {
+              width: 14px !important;
+              height: 14px !important;
+              fill: light-dark(black, white) !important;
+            }
+
+            .library-workspace-item.atg-tab-group .item-label {
+              font-weight: 600 !important;
+              padding-inline: 0 var(--space-medium, 8px) !important;
+              margin-left: 10px !important;
+            }
+
+            .library-workspace-tab-group-content {
+              margin-inline-start: 5px;
+            }
+
+            .library-workspace-tab-group-content::after,
+            .library-workspace-tab-group-content::before {
+              content: none !important;
+            }
+
+            .library-workspace-tab-group.collapsed .library-workspace-tab-group-content .library-workspace-item:not(.selected) {
+              max-height: var(--tab-min-height) !important;
+              min-height: var(--tab-min-height) !important;
+              opacity: 1 !important;
+              margin-block: 4px 2px !important;
+              pointer-events: auto;
+            }
+          }
+        `;
+        root.appendChild(style);
+      };
+
+      proto.createAdvancedTabGroupsIconNode = function (group) {
+        const iconWrapper = this.el("span", {
+          className: "item-icon atg-tab-group-icon"
+        });
+        const sourceIcon = group.querySelector(
+          ".tab-group-icon :is(.group-icon, label)"
+        );
+
+        if (sourceIcon) {
+          iconWrapper.classList.add("has-custom-icon");
+          iconWrapper.appendChild(sourceIcon.cloneNode(true));
+        } else {
+          iconWrapper.appendChild(
+            this.el("span", { className: "atg-tab-group-icon-fallback" })
+          );
+        }
+
+        const sourceContainer = group.querySelector(".tab-group-icon");
+        if (sourceContainer?.getAttribute("zen-emoji-open") === "true") {
+          iconWrapper.setAttribute("zen-emoji-open", "true");
+        }
+
+        return iconWrapper;
+      };
+
+      proto.getAdvancedTabGroupsLibraryColor = function (group) {
+        if (!group?.id) {
+          return "";
+        }
+
+        globalThis.advancedTabGroups?.syncGroupColorVars?.(group);
+
+        const groupStyle = window.getComputedStyle(group);
+        const docStyle = window.getComputedStyle(document.documentElement);
+        return (
+          groupStyle.getPropertyValue("--tab-group-color").trim() ||
+          docStyle.getPropertyValue(`--tab-group-color-${group.id}`).trim() ||
+          docStyle.getPropertyValue(`--tab-group-color-${group.id}-favicon`).trim()
+        );
+      };
+
+      proto.getAdvancedTabGroupsLibraryStroke = function (group) {
+        if (!group?.id) {
+          return "";
+        }
+
+        globalThis.advancedTabGroups?.syncGroupColorVars?.(group);
+
+        const groupStyle = window.getComputedStyle(group);
+        const docStyle = window.getComputedStyle(document.documentElement);
+        return (
+          groupStyle.getPropertyValue("--tab-group-stroke").trim() ||
+          docStyle.getPropertyValue(`--tab-group-color-${group.id}-invert`).trim() ||
+          docStyle.getPropertyValue(`--tab-group-color-${group.id}-favicon-invert`).trim()
+        );
+      };
+
+      proto.renderAdvancedTabGroupsGroup = function (group, container, wsId) {
+        this.ensureAdvancedTabGroupsStyles();
+
+        const groupId = `advanced-tab-groups:${group.id || `${wsId}:${group.label}`}`;
+        let isExpanded;
+        if (this._folderExpansion.has(groupId)) {
+          isExpanded = this._folderExpansion.get(groupId);
+        } else {
+          isExpanded = !group.hasAttribute("collapsed");
+          this._folderExpansion.set(groupId, isExpanded);
+        }
+
+        const tabs = (group.tabs || []).filter(child => {
+          return !child.hasAttribute("cloned") && !child.hasAttribute("zen-empty-tab");
+        });
+        const hasActive = tabs.some(tab => tab.selected);
+        const groupColor = this.getAdvancedTabGroupsLibraryColor(group);
+        const groupStroke = this.getAdvancedTabGroupsLibraryStroke(group);
+
+        const groupEl = this.el("div", {
+          className: `library-workspace-tab-group ${isExpanded ? "" : "collapsed"}`
+        });
+        if (groupColor) {
+          groupEl.style.setProperty("--atg-tab-group-color", groupColor);
+        }
+        if (groupStroke && !groupStroke.includes("gradient")) {
+          groupEl.style.setProperty("--atg-tab-group-stroke", groupStroke);
+        }
+        if (group.hasAttribute("show-grain")) {
+          groupEl.setAttribute("show-grain", group.getAttribute("show-grain"));
+        }
+        const grain = group.style.getPropertyValue("--group-grain");
+        if (grain) {
+          groupEl.style.setProperty("--group-grain", grain);
+        }
+
+        const headerEl = this.el("div", {
+          className: `library-workspace-item atg-tab-group ${hasActive ? "selected" : ""}`,
+          onclick: event => {
+            event.stopPropagation();
+            const newlyExpanded = !this._folderExpansion.get(groupId);
+            this._folderExpansion.set(groupId, newlyExpanded);
+            groupEl.classList.toggle("collapsed", !newlyExpanded);
+
+            const chevron = headerEl.querySelector(".atg-tab-group-chevron svg");
+            if (chevron) {
+              const rot = newlyExpanded ? "0deg" : "-90deg";
+              chevron.setAttribute(
+                "style",
+                `transform: rotate(${rot}); transition: transform 0.2s;`
+              );
+            }
+          }
+        });
+
+        const rot = isExpanded ? "0deg" : "-90deg";
+        const chevronSvg = this.svg(
+          `<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" style="transform: rotate(${rot}); transition: transform 0.2s;"><path d="M7 10l5 5 5-5z"/></svg>`
+        );
+
+        headerEl.appendChild(
+          this.el("span", { className: "atg-tab-group-chevron" }, [chevronSvg])
+        );
+
+        headerEl.appendChild(this.createAdvancedTabGroupsIconNode(group));
+
+        headerEl.appendChild(
+          this.el("span", {
+            className: "item-label",
+            textContent: group.label || "Tab Group"
+          })
+        );
+        groupEl.appendChild(headerEl);
+
+        const contentEl = this.el("div", {
+          className: "library-workspace-tab-group-content"
+        });
+        tabs.forEach(tab => this.renderTab(tab, contentEl, wsId));
+
+        groupEl.appendChild(contentEl);
+        container.appendChild(groupEl);
+      };
+
+      proto.renderItemRecursive = function (item, container, wsId) {
+        const isRegularTabGroup =
+          window.gBrowser.isTabGroup(item) &&
+          !item.hasAttribute("split-view-group") &&
+          !item.classList.contains("zen-folder") &&
+          !item.hasAttribute("zen-folder") &&
+          (item.localName === "tab-group" || item.tagName === "tab-group");
+
+        if (isRegularTabGroup) {
+          this.renderAdvancedTabGroupsGroup(item, container, wsId);
+          return;
+        }
+
+        return originalRenderItemRecursive.call(this, item, container, wsId);
+      };
+
+      document.querySelector("zen-library")?.update?.(true);
+      console.log("[AdvancedTabGroups] Zen Library group styling patched");
+      return true;
+    };
+
+    if (patchZenLibrary()) {
+      return;
+    }
+
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts += 1;
+      if (patchZenLibrary() || attempts >= 120) {
+        clearInterval(interval);
+      }
+    }, 500);
   }
 
   setupObserver() {
@@ -414,6 +808,8 @@ class AdvancedTabGroups {
 
     // Set up observer to track collapsed state changes
     this.setupGroupCollapsedObserver(group);
+
+    this.syncGroupColorVars(group);
 
     // Update group visibility based on workspace
     setTimeout(() => this.updateGroupVisibility(), 50);
@@ -942,6 +1338,7 @@ class AdvancedTabGroups {
 
               group.style.setProperty("--group-grain", gZenThemePicker.currentTexture);
               group.setAttribute("show-grain", gZenThemePicker.currentTexture > 0);
+              this.syncGroupColorVars(group);
             
               return colors;
             }
@@ -1209,6 +1606,7 @@ class AdvancedTabGroups {
             `--tab-group-color-${group.id}-favicon-invert`,
             colorString
           );
+          self.syncGroupColorVars(group);
         
           this.updateIconColor(group, finalColor);
           this.saveTabGroupColors();
@@ -1457,10 +1855,69 @@ class AdvancedTabGroups {
     }
   }
 
+  getGroupColorValue(group) {
+    if (!group?.id) {
+      return "";
+    }
+
+    const docStyle = getComputedStyle(document.documentElement);
+    const groupStyle = getComputedStyle(group);
+    return (
+      docStyle.getPropertyValue(`--tab-group-color-${group.id}`).trim() ||
+      docStyle.getPropertyValue(`--tab-group-color-${group.id}-favicon`).trim() ||
+      groupStyle.getPropertyValue("--tab-group-color").trim()
+    );
+  }
+
+  getGroupStrokeValue(group) {
+    if (!group?.id) {
+      return "";
+    }
+
+    const docStyle = getComputedStyle(document.documentElement);
+    const groupStyle = getComputedStyle(group);
+    return (
+      docStyle.getPropertyValue(`--tab-group-color-${group.id}-invert`).trim() ||
+      docStyle.getPropertyValue(`--tab-group-color-${group.id}-favicon-invert`).trim() ||
+      groupStyle.getPropertyValue("--tab-group-stroke").trim()
+    );
+  }
+
+  syncGroupColorVars(group) {
+    if (!group?.id || group.hasAttribute("split-view-group")) {
+      return;
+    }
+
+    const color = this.getGroupColorValue(group);
+    const stroke = this.getGroupStrokeValue(group);
+    const colorTargets = [
+      group,
+      group.querySelector(".tab-group-label-container"),
+      group.querySelector(".tab-group-icon-container"),
+      group.querySelector(".tab-group-icon"),
+      group.querySelector(".tab-group-container"),
+    ].filter(Boolean);
+
+    if (color) {
+      colorTargets.forEach(target => target.style.setProperty("--tab-group-color", color));
+    }
+
+    if (stroke && !stroke.includes("gradient")) {
+      colorTargets.forEach(target => target.style.setProperty("--tab-group-stroke", stroke));
+    }
+  }
+
   // Apply saved colors to tab groups
   applySavedColors() {
     try {
       Object.entries(this.savedColors).forEach(async ([groupId, color]) => {
+        const syncSavedGroup = async () => {
+          const group = await this.waitForElm(`tab-group[id="${groupId}"]`);
+          if (group) {
+            this.syncGroupColorVars(group);
+          }
+        };
+
         // Handle new format (object with gradientColors, opacity, texture)
         if (typeof color === 'object' && color.gradientColors) {
           const previousOpacity = gZenThemePicker.currentOpacity;
@@ -1472,8 +1929,12 @@ class AdvancedTabGroups {
 
           gZenThemePicker.currentOpacity = previousOpacity;
 
+          const group = await this.waitForElm(`tab-group[id="${groupId}"]`);
+          if (group) {
+            this.syncGroupColorVars(group);
+          }
+
           if (color.texture) {
-            const group = await this.waitForElm(`tab-group[id="${groupId}"]`);
             if (group) {
               group.style.setProperty("--group-grain", color.texture);
               group.setAttribute("show-grain", color.texture > 0);
@@ -1484,6 +1945,7 @@ class AdvancedTabGroups {
         else if (typeof color === 'string' && color.trim() !== '') {
           document.documentElement.style.setProperty(`--tab-group-color-${groupId}`, color);
           document.documentElement.style.setProperty(`--tab-group-color-${groupId}-invert`, color);
+          syncSavedGroup();
         }
       });
     } catch (error) {
@@ -1568,6 +2030,7 @@ class AdvancedTabGroups {
       iconElement.appendChild(imgFrag.firstElementChild);
 
       this.updateIconColor(group, this.savedColors[group.id]?.gradientColors || [])
+      this.syncGroupColorVars(group);
     
       // Save the icon to persistent storage
       this.saveGroupIcon(group.id, iconUrl);

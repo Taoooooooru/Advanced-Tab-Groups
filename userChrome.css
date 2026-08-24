@@ -46,6 +46,7 @@ tab-group:not([split-view-group]) {
 
     .tab-group-icon-container {
       margin: 0 6px 0 10px;
+      color: var(--tab-group-stroke);
     }
 
     .tab-group-icon {
