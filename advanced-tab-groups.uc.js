@@ -4,7 +4,7 @@
 // ==/UserScript==
 /* ==== Tab groups ==== */
 /* https://github.com/Anoms12/Advanced-Tab-Groups */
-/* ======= v3.5.5 ======= */
+/* ======= v3.5.6 ======= */
 
 class AdvancedTabGroups {
   #initTabGroupListener;
@@ -100,7 +100,7 @@ class AdvancedTabGroups {
           .library-workspace-tab-group-content {
             margin-inline-start: 12px;
             max-height: 4000px;
-            overflow: hidden;
+            overflow: visible;
             position: relative;
             transition: max-height 0.15s var(--zen-library-easing);
           }
@@ -142,11 +142,15 @@ class AdvancedTabGroups {
             min-height: 36px;
             height: 36px;
             margin: 0 !important;
-            padding-left: var(--tab-inline-padding) !important;
+            padding-left: 0 !important;
             padding-right: 0 !important;
             border-radius: var(--border-radius-medium, 6px) !important;
             gap: 8px;
             background: transparent;
+          }
+
+          .library-workspace-tab-group-content > .library-workspace-item {
+            padding-left: var(--tab-inline-padding) !important;
           }
 
           .library-workspace-item.atg-tab-group:hover {
@@ -257,6 +261,10 @@ class AdvancedTabGroups {
               font-weight: 600 !important;
               padding-inline: 0 var(--space-medium, 8px) !important;
               margin-left: 0 !important;
+            }
+
+            .library-workspace-item.atg-tab-group:not(:has(.atg-tab-group-icon.has-custom-icon, .atg-tab-group-icon[zen-emoji-open="true"])) .item-label {
+              margin-left: 10px !important;
             }
 
             .library-workspace-tab-group-content {
