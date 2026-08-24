@@ -4,7 +4,7 @@
 // ==/UserScript==
 /* ==== Tab groups ==== */
 /* https://github.com/Anoms12/Advanced-Tab-Groups */
-/* ======= v3.5.6 ======= */
+/* ======= v3.5.7 ======= */
 
 class AdvancedTabGroups {
   #initTabGroupListener;
@@ -228,7 +228,7 @@ class AdvancedTabGroups {
               min-height: 30px;
               height: 30px;
               margin-block-start: 5px !important;
-              padding-left: 0 !important;
+              padding-left: var(--tab-inline-padding) !important;
               padding-right: 0 !important;
             }
 
@@ -271,13 +271,9 @@ class AdvancedTabGroups {
               margin-inline-start: 12px;
             }
 
-            .library-workspace-tab-group-content::after {
-              content: "" !important;
-              background: var(--atg-tab-group-color);
-            }
-
+            .library-workspace-tab-group-content::after,
             .library-workspace-tab-group[show-grain="true"] .library-workspace-tab-group-content::before {
-              content: "" !important;
+              content: none !important;
             }
 
             .library-workspace-tab-group.collapsed .library-workspace-tab-group-content .library-workspace-item:not(.selected) {
@@ -414,17 +410,6 @@ class AdvancedTabGroups {
             }
           }
         });
-
-        const rot = isExpanded ? "0deg" : "-90deg";
-        const chevronSvg = this.svg(
-          `<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" style="transform: rotate(${rot}); transition: transform 0.2s;"><path d="M7 10l5 5 5-5z"/></svg>`
-        );
-
-        if (!isArcLike) {
-          headerEl.appendChild(
-            this.el("span", { className: "atg-tab-group-chevron" }, [chevronSvg])
-          );
-        }
 
         headerEl.appendChild(this.createAdvancedTabGroupsIconNode(group));
 
