@@ -4,7 +4,7 @@
 // ==/UserScript==
 /* ==== Tab groups ==== */
 /* https://github.com/Anoms12/Advanced-Tab-Groups */
-/* ======= v3.5.7 ======= */
+/* ======= v3.6.0 ======= */
 
 class AdvancedTabGroups {
   #initTabGroupListener;
@@ -191,7 +191,7 @@ class AdvancedTabGroups {
             justify-content: center;
             border-radius: 4px !important;
             position: relative;
-            margin: 0;
+            margin: 0 0 0 var(--tab-inline-padding);
             fill: var(--atg-tab-group-stroke) !important;
             background: var(--atg-tab-group-color);
             overflow: hidden;
