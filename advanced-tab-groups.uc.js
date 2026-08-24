@@ -4,7 +4,7 @@
 // ==/UserScript==
 /* ==== Tab groups ==== */
 /* https://github.com/Anoms12/Advanced-Tab-Groups */
-/* ======= v3.5.4 ======= */
+/* ======= v3.5.5 ======= */
 
 class AdvancedTabGroups {
   #initTabGroupListener;
@@ -220,20 +220,20 @@ class AdvancedTabGroups {
           }
 
           @media (-moz-pref("browser.tabs.groups.arc-style")), (-moz-pref("tab.groups.fill-folders")), (-moz-pref("tab.groups.theme-folders")) {
-            .library-workspace-tab-group {
-              margin-block: 4px 2px;
-            }
-
             .library-workspace-item.atg-tab-group {
               min-height: 30px;
               height: 30px;
               margin-block-start: 5px !important;
-              padding-left: var(--tab-inline-padding) !important;
+              padding-left: 0 !important;
               padding-right: 0 !important;
             }
 
             .library-workspace-item.atg-tab-group:hover {
               background-color: transparent !important;
+            }
+
+            .atg-tab-group-chevron {
+              display: none !important;
             }
 
             .atg-tab-group-icon {
@@ -260,12 +260,16 @@ class AdvancedTabGroups {
             }
 
             .library-workspace-tab-group-content {
-              margin-inline-start: 5px;
+              margin-inline-start: 12px;
             }
 
-            .library-workspace-tab-group-content::after,
-            .library-workspace-tab-group-content::before {
-              content: none !important;
+            .library-workspace-tab-group-content::after {
+              content: "" !important;
+              background: var(--atg-tab-group-color);
+            }
+
+            .library-workspace-tab-group[show-grain="true"] .library-workspace-tab-group-content::before {
+              content: "" !important;
             }
 
             .library-workspace-tab-group.collapsed .library-workspace-tab-group-content .library-workspace-item:not(.selected) {
@@ -340,9 +344,16 @@ class AdvancedTabGroups {
       proto.renderAdvancedTabGroupsGroup = function (group, container, wsId) {
         this.ensureAdvancedTabGroupsStyles();
 
+        const isArcLike =
+          Services.prefs.getBoolPref("browser.tabs.groups.arc-style", false) ||
+          Services.prefs.getBoolPref("tab.groups.fill-folders", false) ||
+          Services.prefs.getBoolPref("tab.groups.theme-folders", false);
         const groupId = `advanced-tab-groups:${group.id || `${wsId}:${group.label}`}`;
         let isExpanded;
-        if (this._folderExpansion.has(groupId)) {
+        if (isArcLike) {
+          isExpanded = true;
+          this._folderExpansion.set(groupId, true);
+        } else if (this._folderExpansion.has(groupId)) {
           isExpanded = this._folderExpansion.get(groupId);
         } else {
           isExpanded = !group.hasAttribute("collapsed");
@@ -377,6 +388,10 @@ class AdvancedTabGroups {
           className: `library-workspace-item atg-tab-group ${hasActive ? "selected" : ""}`,
           onclick: event => {
             event.stopPropagation();
+            if (isArcLike) {
+              return;
+            }
+
             const newlyExpanded = !this._folderExpansion.get(groupId);
             this._folderExpansion.set(groupId, newlyExpanded);
             groupEl.classList.toggle("collapsed", !newlyExpanded);
@@ -397,9 +412,11 @@ class AdvancedTabGroups {
           `<svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" style="transform: rotate(${rot}); transition: transform 0.2s;"><path d="M7 10l5 5 5-5z"/></svg>`
         );
 
-        headerEl.appendChild(
-          this.el("span", { className: "atg-tab-group-chevron" }, [chevronSvg])
-        );
+        if (!isArcLike) {
+          headerEl.appendChild(
+            this.el("span", { className: "atg-tab-group-chevron" }, [chevronSvg])
+          );
+        }
 
         headerEl.appendChild(this.createAdvancedTabGroupsIconNode(group));
 
