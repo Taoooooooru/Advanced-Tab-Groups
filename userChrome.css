@@ -139,11 +139,32 @@ tab-group:not([split-view-group]) {
     .tab-group-container {
       tab:not([selected]) {
         max-height: 0 !important;
+        min-height: 0 !important;
         opacity: 0 !important;
         margin-block: 0 !important;
         pointer-events: none !important;
+        overflow: hidden !important;
+      }
+      tab[aria-hidden="true"]:not([selected]) {
+        display: flex !important;
+        max-height: 0 !important;
+        min-height: 0 !important;
+        opacity: 0 !important;
+        margin-block: 0 !important;
+        pointer-events: none !important;
+        overflow: hidden !important;
       }
     }
+  }
+  &[collapsed] tab[aria-hidden="true"]:not([selected]) {
+    display: flex !important;
+    max-height: 0 !important;
+    min-height: 0 !important;
+    opacity: 0 !important;
+    margin-block: 0 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    transition: max-height 0.15s ease, opacity 0.15s ease, margin 0.15s ease !important;
   }
 }
 
