@@ -127,6 +127,12 @@ tab-group:not([split-view-group]) {
       background: var(--tab-group-color);
     }
 
+    tab {
+      max-height: 40px;
+      opacity: 1;
+      overflow: hidden;
+      transition: scale 0.07s ease, var(--zen-tabbox-element-indent-transition), min-width 100ms ease-out, max-width 100ms ease-out, max-height 0.15s ease, opacity 0.15s ease !important;
+    }
   }
 
   &[collapsed] {
@@ -134,6 +140,8 @@ tab-group:not([split-view-group]) {
       tab:not([selected]) {
         max-height: 0 !important;
         opacity: 0 !important;
+        margin-block: 0 !important;
+        pointer-events: none !important;
       }
     }
   }
