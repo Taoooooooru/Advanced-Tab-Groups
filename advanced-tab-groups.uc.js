@@ -943,19 +943,30 @@ class AdvancedTabGroups {
         [useFaviconColorItem, "_useFaviconColor"],
         [renameGroupItem, this.renameGroupStart],
         [changeGroupIconItem, this.applyGroupIcon],
-        [ungroupTabsItem, "ungroupTabs"],
+        [ungroupTabsItem, this.ungroupTabs],
         [convertToFolderItem, this.convertGroupToFolder]
       ];
 
       for (const menuItem of menuItems) {
         if (menuItem[0]) {
-          menuItem[0].addEventListener("command", () => {
-            const group = this._contextMenuCurrentGroup;
-            if (group && typeof menuItem[1] === "function") {
-              menuItem[1].call(this, group);
-            } else if (group) {
-              group[menuItem[1]]();
+          const handler = menuItem[1];
+          const isGroupMethod = typeof handler === "string";
+          menuItem[0].addEventListener("command", (event) => {
+            const group = this._contextMenuCurrentGroup || contextMenu._lastGroup;
+            console.log("[AdvancedTabGroups] command fired", menuItem[0].className, "group:", group?.id, "handler:", handler?.name || handler);
+            if (!group) {
+              console.warn("[AdvancedTabGroups] No target group for command", menuItem[0].className);
+              return;
             }
+            try {
+              if (!isGroupMethod) {
+                handler.call(this, group);
+              } else {
+                const fn = group[handler];
+                if (typeof fn === "function") fn.call(group);
+                else console.warn("[AdvancedTabGroups] group missing method", handler);
+              }
+            } catch(e){ console.error("[AdvancedTabGroups] command error", e); }
           });
         }
       }
@@ -964,6 +975,7 @@ class AdvancedTabGroups {
         this.populateMoveGroupToSpaceMenu(moveGroupToSpacePopup);
       });
       contextMenu.addEventListener("popupshowing", () => {
+        contextMenu._lastGroup = this._contextMenuCurrentGroup;
         const workspaces = this.getWorkspaces();
         const currentWorkspaceId = this.getGroupWorkspaceId(
           this._contextMenuCurrentGroup
@@ -974,10 +986,9 @@ class AdvancedTabGroups {
           workspaces.every(workspace => workspace.uuid === currentWorkspaceId);
       });
 
-      // Clear the current group when the menu closes (ready to be reused)
       contextMenu.addEventListener("popuphidden", () => {
-        console.log("[AdvancedTabGroups] Context menu hidden");
-        this._contextMenuCurrentGroup = null;
+        console.log("[AdvancedTabGroups] Context menu hidden", "lastGroup:", contextMenu._lastGroup?.id);
+        setTimeout(()=>{ this._contextMenuCurrentGroup = null; }, 500);
       });
 
       this._sharedContextMenu = contextMenu;
@@ -1637,6 +1648,46 @@ class AdvancedTabGroups {
         );
       }
     };
+  }
+
+  ungroupTabs(group) {
+    try {
+      if (!group) return;
+      const tabs = this.getGroupTabs(group);
+      const rawTabs = Array.from(group.tabs || []);
+      const targetTabs = tabs.length ? tabs : rawTabs;
+      let done = false;
+      if (typeof group.ungroupTabs === "function") {
+        try {
+          group.ungroupTabs();
+          if (!group.tabs?.length && !group.querySelectorAll("tab").length) done = true;
+        } catch (_) {}
+      }
+      if (!done && targetTabs.length && typeof gBrowser.ungroupTab === "function") {
+        targetTabs.slice().forEach(tab => { try { gBrowser.ungroupTab(tab); } catch (_) {} });
+        done = true;
+      }
+      if (!done && targetTabs.length) {
+        const parent = group.parentNode;
+        const next = group.nextSibling;
+        targetTabs.slice().forEach(tab => {
+          try {
+            tab.removeAttribute("tab-group-id");
+            if (parent) parent.insertBefore(tab, next);
+          } catch (_) {}
+        });
+        setTimeout(() => { try { if (group.isConnected) group.remove(); } catch (_) {} }, 50);
+      }
+      if (!targetTabs.length) {
+        try { gBrowser.removeTabGroup?.(group); } catch (_) {}
+        try { if (group.isConnected) group.remove(); } catch (_) {}
+      }
+      this.removeSavedColor(group.id);
+      this.removeSavedIcon(group.id);
+      this.removeSavedCollapsedState(group.id);
+    } catch (error) {
+      console.error("[AdvancedTabGroups] Error ungrouping tabs:", error);
+    }
   }
 
   // New method to convert group to folder
