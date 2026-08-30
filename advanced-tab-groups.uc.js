@@ -869,15 +869,30 @@ class AdvancedTabGroups {
     });
   }
 
+  isArcMode() {
+    try {
+      return Services.prefs.getBoolPref("browser.tabs.groups.arc-style", false) ||
+        Services.prefs.getBoolPref("tab.groups.fill-folders", false) ||
+        Services.prefs.getBoolPref("tab.groups.theme-folders", false);
+    } catch { return false; }
+  }
+
   // Set up observer to track collapsed state changes
   setupGroupCollapsedObserver(group) {
     if (group._collapsedObserverAdded) return;
     group._collapsedObserverAdded = true;
 
+    if (this.isArcMode() && group.hasAttribute("collapsed")) {
+      try { group.removeAttribute("collapsed"); } catch {}
+    }
+
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === "attributes" && mutation.attributeName === "collapsed") {
-          // Save the collapsed state when it changes
+          if (this.isArcMode() && group.hasAttribute("collapsed")) {
+            try { group.removeAttribute("collapsed"); } catch {}
+            return;
+          }
           this.saveGroupCollapsedState(group.id, group.hasAttribute("collapsed"));
         }
       });
@@ -2179,12 +2194,14 @@ class AdvancedTabGroups {
   // Apply saved collapsed states to tab groups
   applySavedCollapsedStates() {
     try {
+      if (this.isArcMode()) return;
       const states = this.savedCollapsedStates;
       Object.entries(states).forEach(([groupId, isCollapsed]) => {
         if (isCollapsed) {
           // Use waitForElm to handle groups that might not be ready yet
           this.waitForElm(`tab-group[id="${groupId}"]`).then(group => {
             if (group && !group.hasAttribute("split-view-group")) {
+              if (this.isArcMode()) { group.removeAttribute("collapsed"); return; }
               group.setAttribute("collapsed", "true");
               console.log(`[AdvancedTabGroups] Applied collapsed state to group ${groupId}`);
             }
