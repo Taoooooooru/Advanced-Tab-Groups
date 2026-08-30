@@ -230,6 +230,9 @@ tab-group:not([split-view-group]) {
       &::after {
         content: none;
       }
+      tab {
+        transition: none !important;
+      }
     }
 
     &[collapsed] {
@@ -237,8 +240,12 @@ tab-group:not([split-view-group]) {
         tab:not([selected]) {
           max-height: 40px !important;
           opacity: 100% !important;
+          transition: none !important;
         }
       }
     }
+  }
+  tab-group[collapsed] tab[aria-hidden="true"] {
+    transition: none !important;
   }
 }
