@@ -41,9 +41,12 @@ tab-group:not([split-view-group]) {
       fill: currentColor !important;
       width: 16px !important;
       height: 16px !important;
-      padding: 2px !important;
+      padding: 4px !important;
       border-radius: var(--border-radius-small, 4px) !important;
-      margin-inline-start: 2px !important;
+      margin-inline: 6px 2px !important;
+    }
+    .tab-group-folder-button:hover {
+      background-color: color-mix(in srgb, currentColor 12%, transparent) !important;
     }
     @media not (-moz-pref("browser.tabs.groups.show-folder-button")) {
       .tab-group-folder-button {
