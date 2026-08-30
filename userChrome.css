@@ -31,13 +31,24 @@ tab-group:not([split-view-group]) {
     align-items: center !important;
     justify-content: flex-start !important;
 
-    .tab-close-button {
+    .tab-close-button, .tab-group-folder-button {
       display: none !important;
+    }
+
+    .tab-group-folder-button {
+      list-style-image: url("chrome://browser/skin/zen-icons/folder.svg") !important;
+      -moz-context-properties: fill, fill-opacity !important;
+      fill: currentColor !important;
+      width: 16px !important;
+      height: 16px !important;
+      padding: 2px !important;
+      border-radius: var(--border-radius-small, 4px) !important;
+      margin-inline-start: 2px !important;
     }
 
     &:hover {
       background-color: var(--tab-hover-background-color) !important;
-      .tab-close-button {
+      .tab-close-button, .tab-group-folder-button {
         -moz-window-dragging: no-drag !important;
         visibility: visible !important;
         display: flex !important;
@@ -220,8 +231,12 @@ tab-group:not([split-view-group]) {
         }
       }
 
-      .tab-close-button {
+      .tab-close-button, .tab-group-folder-button {
         display: none !important;
+      }
+
+      &:hover .tab-close-button, &:hover .tab-group-folder-button {
+        display: flex !important;
       }
     }
 

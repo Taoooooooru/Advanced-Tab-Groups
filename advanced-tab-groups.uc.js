@@ -755,7 +755,7 @@ class AdvancedTabGroups {
     grain.className = "grain";
     tabContainer.appendChild(grain);
 
-    // Create and inject the icon container and close button
+    // Create and inject the icon container and buttons
     const groupDomFrag = window.MozXULElement.parseXULToFragment(`
       <div class="tab-group-icon-container">
         <div class="tab-group-icon">
@@ -763,15 +763,24 @@ class AdvancedTabGroups {
         </div>
         <image class="group-marker" role="button" keyNav="false" tooltiptext="Toggle Group"/>
       </div>
+      <image class="tab-group-folder-button" role="button" keyNav="false" tooltiptext="Create folder"/>
       <image class="tab-close-button close-icon" role="button" keyNav="false" tooltiptext="Close Group"/>
     `);
     const iconContainer = groupDomFrag.children[0];
-    const closeButton = groupDomFrag.children[1];
+    const folderButton = groupDomFrag.children[1];
+    const closeButton = groupDomFrag.children[2];
 
     // Insert the icon container at the beginning of the label container
     labelContainer.insertBefore(iconContainer, labelContainer.firstChild);
-    // Add the close button to the label container
+    // Add the folder and close buttons to the label container
+    labelContainer.appendChild(folderButton);
     labelContainer.appendChild(closeButton);
+
+    folderButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      try { this.convertGroupToFolder(group); } catch (e) { console.error("[AdvancedTabGroups] Error converting to folder:", e); }
+    });
 
     // Add click event listener
     closeButton.addEventListener("click", (event) => {
