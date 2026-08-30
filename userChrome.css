@@ -39,11 +39,11 @@ tab-group:not([split-view-group]) {
       list-style-image: url("chrome://browser/skin/zen-icons/folder.svg") !important;
       -moz-context-properties: fill, fill-opacity !important;
       fill: currentColor !important;
-      width: 16px !important;
-      height: 16px !important;
-      padding: 4px !important;
+      width: 20px !important;
+      height: 20px !important;
+      padding: 2px !important;
       border-radius: var(--border-radius-small, 4px) !important;
-      margin-inline: 6px 2px !important;
+      margin-inline: 4px 2px !important;
     }
     .tab-group-folder-button:hover {
       background-color: color-mix(in srgb, currentColor 12%, transparent) !important;
